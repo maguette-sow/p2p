@@ -1,0 +1,186 @@
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>P2P Node Dashboard</title>-->
+<!--    &lt;!&ndash; URL CORRIGÉE CI-DESSOUS &ndash;&gt;-->
+<!--    <link href="https://jsdelivr.net" rel="stylesheet">-->
+<!--</head>-->
+<!--<body class="container mt-5">-->
+
+<!--<div class="d-flex justify-content-between align-items-center mb-4">-->
+<!--    <h2 class="text-primary text-center" th:text="'Gestionnaire du Nœud : ' + ${port}">Port</h2>-->
+<!--    <span class="badge bg-success">Nœud Actif</span>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; Formulaire d'Upload &ndash;&gt;-->
+<!--<div class="card shadow-sm p-4 mb-4">-->
+<!--    <h4 class="card-title">Uploader un nouveau fichier</h4>-->
+
+<!--    <p class="text-muted small">Le fichier sera automatiquement répliqué sur les autres nœuds du réseau.</p>-->
+<!--    <form action="/ui/upload" method="post" enctype="multipart/form-data">-->
+<!--        <div class="input-group">-->
+<!--            <input type="file" name="file" class="form-control" required>-->
+<!--            <button type="submit" class="btn btn-primary">Envoyer au réseau</button>-->
+<!--        </div>-->
+<!--    </form>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; Liste des fichiers &ndash;&gt;-->
+<!--<div class="card shadow-sm p-4">-->
+<!--    <h4>Fichiers disponibles sur ce nœud</h4>-->
+<!--    <table class="table table-hover mt-3">-->
+<!--        <thead class="table-light">-->
+<!--        <tr>-->
+<!--            <th>Nom du fichier</th>-->
+<!--            <th class="text-end">Action</th>-->
+<!--        </tr>-->
+<!--        </thead>-->
+<!--        <tbody>-->
+<!--        <tr th:each="file : ${files}">-->
+<!--            <td class="align-middle">-->
+<!--                <i class="bi bi-file-earmark-text"></i> [[${file}]]-->
+<!--            </td>-->
+<!--            <td class="text-end">-->
+<!--                <a th:href="@{'/files/' + ${file}}" class="btn btn-sm btn-outline-success">-->
+<!--                    Télécharger-->
+<!--                </a>-->
+<!--            </td>-->
+<!--        </tr>-->
+<!--        <tr th:if="${#lists.isEmpty(files)}">-->
+<!--            <td colspan="2" class="text-center text-muted">Aucun fichier partagé pour le moment.</td>-->
+<!--        </tr>-->
+<!--        </tbody>-->
+<!--    </table>-->
+<!--</div>-->
+
+<!--</body>-->
+<!--</html>-->
+
+
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>P2P Node Dashboard</title>
+    <style>
+        /* Design interne - Fonctionne sans internet */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #e9ecef; color: #495057; margin: 0; padding: 40px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #007bff; padding-bottom: 15px; margin-bottom: 30px; }
+        h2 { color: #007bff; margin: 0; }
+        .port-badge { background: #28a745; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
+        .card { border: 1px solid #dee2e6; background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 30px; }
+        h4 { margin-top: 0; color: #343a40; }
+        .form-group { display: flex; gap: 10px; margin-top: 15px; }
+        input[type="file"] { flex-grow: 1; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; background: white; }
+        .btn { padding: 10px 25px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s; text-decoration: none; display: inline-block; white-space: nowrap; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-success { background-color: #28a745; color: white; font-size: 0.8em; }
+        .btn-success:hover { background-color: #218838; }
+
+        /*  Gestion de l'espacement des boutons */
+        .btn-group-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; background: #f1f3f5; padding: 15px; border-bottom: 2px solid #dee2e6; }
+        td { padding: 15px; border-bottom: 1px solid #dee2e6; vertical-align: middle; }
+        tr:hover { background-color: #f8f9fa; }
+        .empty-msg { text-align: center; color: #adb5bd; padding: 20px; }
+
+        /* Ajustement pour les petits écrans */
+        @media (max-width: 600px) {
+            .btn-group-actions { justify-content: center; }
+            .header { flex-direction: column; gap: 10px; text-align: center; }
+        }
+    </style>
+
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 th:text="'Gestionnaire du Nœud : ' + ${port}">Nœud P2P</h2>
+        <div class="port-badge">Statut: En ligne</div>
+    </div>
+
+    <!-- Section Upload -->
+
+    <div class="card">
+        <h4>📤 Partager un nouveau fichier</h4>
+        <p style="font-size: 0.85em; color: #6c757d;">Sélectionnez un fichier pour le diffuser sur le réseau distribué.</p>
+
+        <form id="uploadForm" action="/ui/upload" method="post" enctype="multipart/form-data" class="form-group">
+            <input type="file" id="fileInput" name="file" required onchange="toggleCancelBtn()">
+
+            <!-- Bouton Annuler (caché par défaut) -->
+            <button type="button" id="cancelBtn" class="btn" style="background-color: #dc3545; color: white; display: none;" onclick="resetFile()">Annuler</button>
+
+            <button type="submit" class="btn btn-primary">Diffuser</button>
+        </form>
+    </div>
+
+
+    <!-- Section Liste -->
+    <div class="card" style="background: white;">
+        <h4>📂 Fichiers stockés sur ce nœud</h4>
+        <table>
+            <thead>
+            <tr>
+                <th>Nom du document</th>
+                <th style="text-align: right;">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="file : ${files}">
+                <td>
+                    <strong th:text="${file}">nom_du_fichier.txt</strong>
+                </td>
+                <td style="text-align: right;">
+                    <div class="btn-group-actions">
+                        <a th:href="@{'/files/' + ${file}}" class="btn btn-success">Télécharger</a>
+
+                        <a th:href="@{'/ui/delete/' + ${file}}"
+                           class="btn"
+                           style="background-color: #dc3545; color: white;"
+                           onclick="return confirm('Supprimer ce fichier localement ?')">
+                            Supprimer
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(files)}" class="empty-msg">
+            Aucun fichier n'est partagé actuellement.
+        </div>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    // Affiche ou cache le bouton Annuler selon si un fichier est choisi
+    function toggleCancelBtn() {
+        if (fileInput.value) {
+            cancelBtn.style.display = 'inline-block';
+        } else {
+            cancelBtn.style.display = 'none';
+        }
+    }
+
+    // Vide le champ fichier et cache le bouton Annuler
+    function resetFile() {
+        fileInput.value = ""; // Vide le choix
+        toggleCancelBtn();    // Cache le bouton
+    }
+</script>
+</body>
+</html>
